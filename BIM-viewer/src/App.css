@@ -1,0 +1,46 @@
+/* App.css */
+
+/* Стили для панели UI */
+.options-menu {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+  max-width: 300px;
+  background-color: rgba(30, 30, 30, 0.95);
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(5px);
+}
+
+/* Видимая панель на мобильных устройствах */
+.options-menu-visible {
+  display: block !important;
+}
+
+/* Скрытие панели по умолчанию на мобилках */
+@media screen and (max-width: 768px) {
+  .options-menu {
+    display: none;
+  }
+}
+
+/* Кнопка меню для телефонов */
+.phone-menu-toggler {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 11;
+  background-color: #333;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.phone-menu-toggler:hover {
+  background-color: #444;
+}
