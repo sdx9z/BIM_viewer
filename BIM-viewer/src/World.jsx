@@ -1,9 +1,10 @@
-import { onMount } from "solid-js"; 
+import { onMount, createSignal } from "solid-js";
 import * as THREE from "three"; // 3D-движок Three.js 
 import * as WEBIFC from "web-ifc"; // Библиотека для работы с IFC-моделями.
 import * as BUI from "@thatopen/ui"; // Пользовательский UI-компоненты BIM-интерфейса.
 import Stats from "stats.js"; // FPS-панель для отображения производительности.
 import * as OBC from "@thatopen/components"; // Основные BIM-компоненты от That Open Company, под псевдонимом OBC.
+import * as BUIC from "@thatopen/ui-obc"; // Пользовательский UI-компоненты
 
 export default function World() {
   onMount(() => {
@@ -29,7 +30,7 @@ export default function World() {
     // Инициализация всех компонентов
     components.init();
     world.scene.setup(); // Установка сцены
-    world.scene.three.background = null; // Прозрачный фон
+    world.scene.three.background = null;  // Прозрачный фон
 
     // Настройка камеры, смотрит в центр
     world.camera.controls.setLookAt(3, 3, 3, 0, 0, 0);
@@ -73,7 +74,7 @@ export default function World() {
       reader.onload = async (event) => {
         const buffer = new Uint8Array(event.target.result);
         const model = await fragmentIfcLoader.load(buffer);
-        model.name = "local-model";
+        model.name = file.name;
         world.scene.three.add(model); // Добавление модели в сцену
       };
       reader.readAsArrayBuffer(file);
@@ -93,7 +94,7 @@ export default function World() {
     async function exportFragments() {
       if (!fragments.groups.size) return;
       const group = Array.from(fragments.groups.values())[0];
-      const data = fragments.export(group); 
+      const data = fragments.export(group);
       download(new File([new Blob([data])], "model.frag"));
 
       const properties = group.getLocalProperties();
@@ -110,86 +111,119 @@ export default function World() {
     // Инициализация BIM UI
     BUI.Manager.init();
 
+    // Список моделей
+    const [modelsList] = BUIC.tables.modelsList({
+      components,
+      tags: { schema: true, viewDefinition: false },
+      actions: { download: false },
+    });
+
     // Создание панели интерфейса
     const panel = BUI.Component.create(() => {
+      const [loadIfcBtn] = BUIC.buttons.loadIfc({ components });
+
       return BUI.html`
-        <bim-panel label="Настройки отображения" class="options-menu">
-          <bim-panel-section collapsed label="Управление">
-
-            <!-- Изменение цвета фона сцены -->
+        
+          <bim-panel label="Управление моделями">
+            <bim-panel-section label="Настройки">
+            <!-- Изменение цвета фона сцены -->  
             <bim-color-input 
-              label="Цвет фона" color="#202932" 
-              @input="${({ target }) => {
-                world.scene.config.backgroundColor = new THREE.Color(target.color);
-              }}">
-            </bim-color-input>
+                label="Цвет фона" color="#202932" 
+                @input="${({ target }) => {
+          world.scene.config.backgroundColor = new THREE.Color(target.color);
+        }}">
+              </bim-color-input>
 
-            <!-- Интенсивность направленного света -->
-            <bim-number-input 
-              slider step="0.1" label="Настройка направленного света" value="1.5" min="0.1" max="10"
-              @change="${({ target }) => {
-                world.scene.config.directionalLight.intensity = target.value;
-              }}">
-            </bim-number-input>
+              <!-- Интенсивность направленного света -->
+              <bim-number-input 
+                slider step="0.1" label="Направленный свет" value="1.5" min="0.1" max="10"
+                @change="${({ target }) => {
+          world.scene.config.directionalLight.intensity = target.value;
+        }}">
+              </bim-number-input>
 
-            <!-- Интенсивность рассеянного света -->
-            <bim-number-input 
-              slider step="0.1" label="Настройка рассеянного света" value="1" min="0.1" max="5"
-              @change="${({ target }) => {
-                world.scene.config.ambientLight.intensity = target.value;
-              }}">
-            </bim-number-input>
+              <!-- Интенсивность рассеянного света -->
+              <bim-number-input 
+                slider step="0.1" label="Рассеянный свет" value="1" min="0.1" max="5"
+                @change="${({ target }) => {
+          world.scene.config.ambientLight.intensity = target.value;
+        }}">
+              </bim-number-input>
 
-            <!-- Переключатель видимости сетки -->
-            <bim-checkbox label="Включить отображение сетки" checked 
-              @change="${({ target }) => {
-                grid.config.visible = target.value;
-              }}">
-            </bim-checkbox>
+              <!-- Переключатель видимости сетки -->
+              <bim-checkbox label="Показать сетку" checked 
+                @change="${({ target }) => {
+          grid.config.visible = target.value;
+        }}">
+              </bim-checkbox>
 
-            <!-- Изменение цвета сетки -->
-            <bim-color-input 
+               <!-- Изменение цвета сетки -->
+              <bim-color-input 
               label="Цвет сетки" color="#bbbbbb" 
               @input="${({ target }) => {
-                grid.config.color = new THREE.Color(target.color);
-              }}">
-            </bim-color-input>
+          grid.config.color = new THREE.Color(target.color);
+        }}">
+               </bim-color-input>
 
-            <!-- Размер ячеек сетки -->
-            <bim-number-input 
+              <!-- Размер ячеек сетки -->
+              <bim-number-input 
               slider step="0.1" label="Размер основной сетки" value="1" min="0" max="10"
               @change="${({ target }) => {
-                grid.config.primarySize = target.value;
-                grid.config.secondarySize = target.value + 10;
-              }}">
-            </bim-number-input>
-
-            <!-- Загрузка IFC-файла -->
-            <input type="file" accept=".ifc" 
+          grid.config.primarySize = target.value;
+          grid.config.secondarySize = target.value + 10;
+        }}">
+              </bim-number-input>
+              
+              <!-- Загрузка IFC-файла -->
+              <bim-button label="Загрузить модель" @click="${() => document.getElementById('file-input').click()}"></bim-button>
+              <input id="file-input" type="file" accept=".ifc" style="display: none"
               @change="${(event) => {
-                const file = event.target.files[0];
-                if (file) loadIfcFromLocalFile(file);
-              }}">
+          const file = event.target.files[0];
+          if (file) loadIfcFromLocalFile(file);
+        }}"
+              />
+              
+              <!-- Экспорт фрагментов -->
+              <bim-button label="Экспорт моделей"
+                @click="${() => exportFragments()}">
+              </bim-button>
 
-            <!-- Экспорт фрагментов -->
-            <bim-button label="Экспорт фрагментов"
-              @click="${() => exportFragments()}">
-            </bim-button>
+              <!-- Очистка сцены -->
+              <bim-button label="Очистить сцену"
+                @click="${() => disposeFragments()}">
+              </bim-button>
+              </bim-panel-section>
 
-            <!-- Очистка сцены -->
-            <bim-button label="Очистить сцену"
-              @click="${() => disposeFragments()}">
-            </bim-button>
-
-          </bim-panel-section>
-        </bim-panel>
+              <!-- Просмотр загруженных моделей -->
+              <bim-panel-section label="Загруженные модели">
+                ${modelsList}
+              </bim-panel-section>
+            </bim-panel>
+          </div>
+        <div id="container"></div>
       `;
     });
 
-    // Добавление панели на страницу
+    // Обертка панели и кнопка переключения видимости
     document.body.appendChild(panel);
+    const containerDiv = document.createElement("div");
+    containerDiv.classList.add("panel-container", "visible"); // начальное состояние - видно
+    containerDiv.appendChild(panel);
 
+    const toggleButton = document.createElement("div");
+    toggleButton.id = "toggle-panel";
+    toggleButton.textContent = "⮜";
+    toggleButton.onclick = () => {
+      const isVisible = containerDiv.classList.contains("visible");
+      containerDiv.classList.toggle("visible", !isVisible);
+      containerDiv.classList.toggle("hidden", isVisible);
+      toggleButton.textContent = isVisible ? "⮞" : "⮜";
+    };
+
+    //Добавление на страницу
+    document.body.appendChild(containerDiv);
+    document.body.appendChild(toggleButton);
   });
 
-  return null; 
+  return null;
 }

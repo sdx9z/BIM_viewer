@@ -1,46 +1,143 @@
-/* App.css */
+/* Основные стили для контейнера */
+#container {
+  width: 100%;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  background-color: #171717;
+}
 
-/* Стили для панели UI */
-.options-menu {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  z-index: 10;
-  max-width: 300px;
-  background-color: rgba(30, 30, 30, 0.95);
-  border-radius: 10px;
+/* Стили для панели управления */
+bim-panel {
+  width: 350px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  background-color: #ffffff;
+  color: #111111;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  font-family: Arial, sans-serif;
+}
+
+/* Стили для секций панели */
+bim-panel-section {
   padding: 1rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(5px);
+  border-bottom: 1px solid #e2e8f0;
 }
 
-/* Видимая панель на мобильных устройствах */
-.options-menu-visible {
-  display: block !important;
+/* Стили для элементов управления */
+bim-color-input,
+bim-number-input,
+bim-checkbox,
+bim-button {
+  display: block;
+  margin-bottom: 1rem;
+  width: 100%;
 }
 
-/* Скрытие панели по умолчанию на мобилках */
-@media screen and (max-width: 768px) {
-  .options-menu {
-    display: none;
-  }
-}
-
-/* Кнопка меню для телефонов */
-.phone-menu-toggler {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  z-index: 11;
-  background-color: #333;
-  color: #fff;
+/* Стилизация кнопок */
+bim-button {
+  background-color: rgb(101, 40, 215);
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
   border: none;
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  text-align: center;
+  transition: background-color 0.2s ease;
+  font-weight: 500;
 }
 
-.phone-menu-toggler:hover {
-  background-color: #444;
+
+/* Стилизация ползунков */
+bim-number-input[slider] {
+  height: 6px;
+  background: #dee2e6;
+  border-radius: 3px;
+  margin-top: 0.5rem;
+}
+
+
+/* Стилизация чекбоксов */
+bim-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+/* Стилизация таблицы моделей */
+bim-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  color: #111;
+}
+
+bim-table th,
+bim-table td {
+  padding: 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Стили для панели и кнопки переключения */
+.panel-container {
+  width: 350px;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  transition: transform 0.3s ease;
+}
+
+/* Показывает панель управления (сдвиг в видимую область) */
+.panel-container.visible {
+  transform: translateX(0);
+}
+
+/* Скрывает панель управления (сдвиг влево за экран) */
+.panel-container.hidden {
+  transform: translateX(-100%);
+}
+
+/* Кнопка для переключения видимости панели */
+#toggle-panel {
+  position: fixed;
+  left: 350px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 48px;
+  background-color: #343a40;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1001;
+  border-radius: 0 4px 4px 0;
+  transition: left 0.3s ease;
+}
+
+/* Сдвиг кнопки влево, если панель скрыта */
+.panel-container.hidden+#toggle-panel {
+  left: 0;
+}
+
+/* Адаптивные стили */
+@media (max-width: 768px) {
+  .panel-container {
+    width: 280px;
+  }
+
+  #toggle-panel {
+    left: 280px;
+  }
 }
