@@ -4,10 +4,11 @@ import * as WEBIFC from "web-ifc"; // Библиотека для работы �
 import * as BUI from "@thatopen/ui"; // Пользовательский UI-компоненты BIM-интерфейса.
 import Stats from "stats.js"; // FPS-панель для отображения производительности.
 import * as OBC from "@thatopen/components"; // Основные BIM-компоненты от That Open Company, под псевдонимом OBC.
+import * as OBCF from "@thatopen/components-front"; // Для поддержки выделения
 import * as BUIC from "@thatopen/ui-obc"; // Пользовательский UI-компоненты
 
 export default function World() {
-  onMount(() => {
+  onMount(async () => {
     // Получаем контейнер для рендеринга
     const container = document.getElementById("container");
 
@@ -53,7 +54,7 @@ export default function World() {
     // Загрузка и управление фрагментами
     const fragments = components.get(OBC.FragmentsManager);
     const fragmentIfcLoader = components.get(OBC.IfcLoader);
-    fragmentIfcLoader.setup();
+    await fragmentIfcLoader.setup(); // ПЕРЕНЕСЕНО В ASYNC
 
     // Исключаем определенные категории IFC при загрузке, чтобы ускорить загрузку и рендеринг
     const excludedCats = [
@@ -75,7 +76,12 @@ export default function World() {
         const buffer = new Uint8Array(event.target.result);
         const model = await fragmentIfcLoader.load(buffer);
         model.name = file.name;
-        world.scene.three.add(model); // Добавление модели в сцену
+        world.scene.three.add(model); //Добавдение модели на сцену
+
+        // Обработка свойств и отображение в таблице
+        const indexer = components.get(OBC.IfcRelationsIndexer);
+        await indexer.process(model);
+        updatePropertiesTable({ fragmentIdMap: {} });
       };
       reader.readAsArrayBuffer(file);
     }
@@ -118,96 +124,116 @@ export default function World() {
       actions: { download: false },
     });
 
-    // Создание панели интерфейса
+    // Создание таблицы свойств элемента
+    const [propertiesTable, updatePropertiesTable] = BUIC.tables.elementProperties({
+      components,
+      fragmentIdMap: {},
+    });
+    propertiesTable.preserveStructureOnFilter = true;
+    propertiesTable.indentationInText = false;
+
+    // Настройка выделения и обновления таблицы
+    const highlighter = components.get(OBCF.Highlighter);
+    highlighter.setup({ world });
+    highlighter.events.select.onHighlight.add((fragmentIdMap) => updatePropertiesTable({ fragmentIdMap }));
+    highlighter.events.select.onClear.add(() => updatePropertiesTable({ fragmentIdMap: {} }));
+
+    // Объединённая панель управления и свойств
     const panel = BUI.Component.create(() => {
       const [loadIfcBtn] = BUIC.buttons.loadIfc({ components });
 
+      const onTextInput = (e) => {
+        const input = e.target;
+        propertiesTable.queryString = input.value !== "" ? input.value : null;
+      };
+
+      const expandTable = (e) => {
+        const button = e.target;
+        propertiesTable.expanded = !propertiesTable.expanded;
+        button.label = propertiesTable.expanded ? "Collapse" : "Expand";
+      };
+
+      const copyAsTSV = async () => await navigator.clipboard.writeText(propertiesTable.tsv);
+
       return BUI.html`
-        
-          <bim-panel label="Управление моделями">
-            <bim-panel-section label="Настройки">
-            <!-- Изменение цвета фона сцены -->  
-            <bim-color-input 
-                label="Цвет фона" color="#202932" 
-                @input="${({ target }) => {
+    <bim-panel label="Управление моделями">
+      
+      <bim-panel-section label="Настройки">
+        <bim-color-input 
+          label="Цвет фона" color="#202932" 
+          @input="${({ target }) => {
           world.scene.config.backgroundColor = new THREE.Color(target.color);
         }}">
-              </bim-color-input>
+        </bim-color-input>
 
-              <!-- Интенсивность направленного света -->
-              <bim-number-input 
-                slider step="0.1" label="Направленный свет" value="1.5" min="0.1" max="10"
-                @change="${({ target }) => {
+        <bim-number-input 
+          slider step="0.1" label="Направленный свет" value="1.5" min="0.1" max="10"
+          @change="${({ target }) => {
           world.scene.config.directionalLight.intensity = target.value;
         }}">
-              </bim-number-input>
+        </bim-number-input>
 
-              <!-- Интенсивность рассеянного света -->
-              <bim-number-input 
-                slider step="0.1" label="Рассеянный свет" value="1" min="0.1" max="5"
-                @change="${({ target }) => {
+        <bim-number-input 
+          slider step="0.1" label="Рассеянный свет" value="1" min="0.1" max="5"
+          @change="${({ target }) => {
           world.scene.config.ambientLight.intensity = target.value;
         }}">
-              </bim-number-input>
+        </bim-number-input>
 
-              <!-- Переключатель видимости сетки -->
-              <bim-checkbox label="Показать сетку" checked 
-                @change="${({ target }) => {
+        <bim-checkbox label="Показать сетку" checked 
+          @change="${({ target }) => {
           grid.config.visible = target.value;
         }}">
-              </bim-checkbox>
+        </bim-checkbox>
 
-               <!-- Изменение цвета сетки -->
-              <bim-color-input 
-              label="Цвет сетки" color="#bbbbbb" 
-              @input="${({ target }) => {
+        <bim-color-input 
+          label="Цвет сетки" color="#bbbbbb" 
+          @input="${({ target }) => {
           grid.config.color = new THREE.Color(target.color);
         }}">
-               </bim-color-input>
+        </bim-color-input>
 
-              <!-- Размер ячеек сетки -->
-              <bim-number-input 
-              slider step="0.1" label="Размер основной сетки" value="1" min="0" max="10"
-              @change="${({ target }) => {
+        <bim-number-input 
+          slider step="0.1" label="Размер основной сетки" value="1" min="0" max="10"
+          @change="${({ target }) => {
           grid.config.primarySize = target.value;
           grid.config.secondarySize = target.value + 10;
         }}">
-              </bim-number-input>
-              
-              <!-- Загрузка IFC-файла -->
-              <bim-button label="Загрузить модель" @click="${() => document.getElementById('file-input').click()}"></bim-button>
-              <input id="file-input" type="file" accept=".ifc" style="display: none"
-              @change="${(event) => {
+        </bim-number-input>
+
+        <bim-button label="Загрузить модель" @click="${() => document.getElementById('file-input').click()}"></bim-button>
+        <input id="file-input" type="file" accept=".ifc" style="display: none"
+          @change="${(event) => {
           const file = event.target.files[0];
           if (file) loadIfcFromLocalFile(file);
         }}"
-              />
-              
-              <!-- Экспорт фрагментов -->
-              <bim-button label="Экспорт моделей"
-                @click="${() => exportFragments()}">
-              </bim-button>
+        />
 
-              <!-- Очистка сцены -->
-              <bim-button label="Очистить сцену"
-                @click="${() => disposeFragments()}">
-              </bim-button>
-              </bim-panel-section>
+        <bim-button label="Экспорт моделей" @click="${() => exportFragments()}"></bim-button>
+        <bim-button label="Очистить сцену" @click="${() => disposeFragments()}"></bim-button>
+      </bim-panel-section>
 
-              <!-- Просмотр загруженных моделей -->
-              <bim-panel-section label="Загруженные модели">
-                ${modelsList}
-              </bim-panel-section>
-            </bim-panel>
-          </div>
-        <div id="container"></div>
-      `;
+      <bim-panel-section label="Загруженные модели">
+        ${modelsList}
+      </bim-panel-section>
+
+      <bim-panel-section label="Свойства элемента">
+        <div style="display: flex; gap: 0.5rem;">
+          <bim-button @click=${expandTable} label=${propertiesTable.expanded ? "Скрыть" : "Показать"}></bim-button>
+          <bim-button @click=${copyAsTSV} label="Скопировать как TSV"></bim-button>
+        </div>
+        <bim-text-input @input=${onTextInput} placeholder="Поиск" debounce="250"></bim-text-input>
+        ${propertiesTable}
+      </bim-panel-section>
+
+    </bim-panel>
+    <div id="container"></div>
+  `;
     });
 
-    // Обертка панели и кнопка переключения видимости
-    document.body.appendChild(panel);
+    // Обёртка панели и кнопка переключения видимости
     const containerDiv = document.createElement("div");
-    containerDiv.classList.add("panel-container", "visible"); // начальное состояние - видно
+    containerDiv.classList.add("panel-container", "visible");
     containerDiv.appendChild(panel);
 
     const toggleButton = document.createElement("div");
@@ -219,6 +245,9 @@ export default function World() {
       containerDiv.classList.toggle("hidden", isVisible);
       toggleButton.textContent = isVisible ? "⮞" : "⮜";
     };
+
+    document.body.appendChild(containerDiv);
+    document.body.appendChild(toggleButton);
 
     //Добавление на страницу
     document.body.appendChild(containerDiv);

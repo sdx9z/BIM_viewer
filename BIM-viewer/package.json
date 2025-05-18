@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@thatopen/components": "^2.4.10",
+    "@thatopen/components-front": "^2.4.10",
     "@thatopen/ui": "^2.4.5",
     "@thatopen/ui-obc": "^2.4.3",
     "solid-js": "^1.9.5",
