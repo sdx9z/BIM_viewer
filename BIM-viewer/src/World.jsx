@@ -2,7 +2,6 @@ import { onMount, createSignal } from "solid-js";
 import * as THREE from "three"; // 3D-движок Three.js 
 import * as WEBIFC from "web-ifc"; // Библиотека для работы с IFC-моделями.
 import * as BUI from "@thatopen/ui"; // Пользовательский UI-компоненты BIM-интерфейса.
-import Stats from "stats.js"; // FPS-панель для отображения производительности.
 import * as OBC from "@thatopen/components"; // Основные BIM-компоненты от That Open Company, под псевдонимом OBC.
 import * as OBCF from "@thatopen/components-front"; // Для поддержки выделения
 import * as BUIC from "@thatopen/ui-obc"; // Пользовательский UI-компоненты
@@ -39,13 +38,6 @@ export default function World() {
     // Создаем и добавляем сетку на сцену
     const grids = components.get(OBC.Grids);
     const grid = grids.create(world);
-
-    // Инициализация FPS-панели
-    const stats = new Stats();
-    stats.showPanel(2); // Панель с задержками рендеринга
-    document.body.appendChild(stats.dom);
-    stats.dom.style.left = "0px";
-    stats.dom.style.zIndex = "unset";
 
     // Начало и завершение отслеживания рендер-циклов
     world.renderer.onBeforeUpdate.add(() => stats.begin());
@@ -94,19 +86,6 @@ export default function World() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    }
-
-    // Экспорт фрагментов и свойств (будет нужно, когда реализуем объединение моделей)
-    async function exportFragments() {
-      if (!fragments.groups.size) return;
-      const group = Array.from(fragments.groups.values())[0];
-      const data = fragments.export(group);
-      download(new File([new Blob([data])], "model.frag"));
-
-      const properties = group.getLocalProperties();
-      if (properties) {
-        download(new File([JSON.stringify(properties)], "model.json"));
-      }
     }
 
     // Очистка сцены
@@ -208,8 +187,6 @@ export default function World() {
           if (file) loadIfcFromLocalFile(file);
         }}"
         />
-
-        <bim-button label="Экспорт моделей" @click="${() => exportFragments()}"></bim-button>
         <bim-button label="Очистить сцену" @click="${() => disposeFragments()}"></bim-button>
       </bim-panel-section>
 

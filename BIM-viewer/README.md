@@ -1,28 +1,45 @@
-## Usage
+Этот проект представляет собой  вьювер IFC моделей, реализованный на стеке Vite, SolidJS и Three.js. Позволяет визуализировать и анализировать BIM-модели прямо в браузере.
 
-```bash
-$ npm install # or pnpm install or yarn install
-```
+Функционал:
 
-### Learn more on the [Solid Website](https://solidjs.com) and come chat with us on our [Discord](https://discord.com/invite/solidjs)
+Загрузка IFC-моделей с помощью библиотеки Web-IFC
 
-## Available Scripts
+Просмотр элементов моделей и их атрибутов
 
-In the project directory, you can run:
+Выделение и подсветка элементов
 
-### `npm run dev`
+Управление моделями (загрузка, очистка)
 
-Runs the app in the development mode.<br>
-Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
+Настройка визуализации (освещение, сетка, фон)
 
-### `npm run build`
+Возможность добавления нескольких моделей
 
-Builds the app for production to the `dist` folder.<br>
-It correctly bundles Solid in production mode and optimizes the build for the best performance.
+Возможность переключения видимости добавленных моделей
 
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
+Используемые технологии
+-Vite
 
-## Deployment
+-SolidJS 
 
-Learn more about deploying your application with the [documentations](https://vite.dev/guide/static-deploy.html)
+-Three.js
+
+-Web-IFC 
+
+-That Open BIM Components
+
+Структура проекта:
+
+BIM-viewer/
+├── node_modules/          # Установленные зависимости
+├── public/               # Статические файлы
+├── src/
+│   ├── App.css           # Стили главного компонента
+│   ├── index.css         # Глобальные стили
+│   └── World.jsx         # Основной файл, содержащий элементы и функции вьювера
+│   ├── App.jsx           # Главный компонент приложения
+│   ├── index.jsx         # Точка входа приложения
+├── .gitignore            # Игнорируемые файлы для Git
+├── package.json          # Конфигурация проекта и зависимости
+├── package-lock.json     # Точные версии зависимостей
+├── README.md             # Документация проекта
+└── vite.config.js        # Конфигурация Vite
