@@ -39,9 +39,9 @@ export default function World() {
     const grids = components.get(OBC.Grids);
     const grid = grids.create(world);
 
-    // Начало и завершение отслеживания рендер-циклов
-    world.renderer.onBeforeUpdate.add(() => stats.begin());
-    world.renderer.onAfterUpdate.add(() => stats.end());
+    // Начало и завершение рендер-циклов
+    world.renderer.onBeforeUpdate.add(() => {});
+    world.renderer.onAfterUpdate.add(() => {});
 
     // Загрузка и управление фрагментами
     const fragments = components.get(OBC.FragmentsManager);
@@ -76,16 +76,6 @@ export default function World() {
         updatePropertiesTable({ fragmentIdMap: {} });
       };
       reader.readAsArrayBuffer(file);
-    }
-
-    // Функция для скачивания файлов (будет нужно, когда реализуем объединение моделей)
-    function download(file) {
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(file);
-      link.download = file.name;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
     }
 
     // Очистка сцены
