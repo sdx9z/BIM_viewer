@@ -100,7 +100,7 @@ bim-table td {
 .panel-container {
   width: 350px;
   height: 100vh;
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   z-index: 1000;

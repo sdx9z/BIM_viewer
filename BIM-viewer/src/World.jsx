@@ -39,14 +39,10 @@ export default function World() {
     const grids = components.get(OBC.Grids);
     const grid = grids.create(world);
 
-    // Начало и завершение рендер-циклов
-    world.renderer.onBeforeUpdate.add(() => {});
-    world.renderer.onAfterUpdate.add(() => {});
-
     // Загрузка и управление фрагментами
     const fragments = components.get(OBC.FragmentsManager);
     const fragmentIfcLoader = components.get(OBC.IfcLoader);
-    await fragmentIfcLoader.setup(); // ПЕРЕНЕСЕНО В ASYNC
+    await fragmentIfcLoader.setup(); 
 
     // Исключаем определенные категории IFC при загрузке, чтобы ускорить загрузку и рендеринг
     const excludedCats = [
@@ -93,6 +89,13 @@ export default function World() {
       actions: { download: false },
     });
 
+  // Создаем дерево элементов
+    const [relationsTree] = BUIC.tables.relationsTree({
+      components,
+      models: [],
+    });
+    relationsTree.preserveStructureOnFilter = true;
+
     // Создание таблицы свойств элемента
     const [propertiesTable, updatePropertiesTable] = BUIC.tables.elementProperties({
       components,
@@ -104,8 +107,20 @@ export default function World() {
     // Настройка выделения и обновления таблицы
     const highlighter = components.get(OBCF.Highlighter);
     highlighter.setup({ world });
-    highlighter.events.select.onHighlight.add((fragmentIdMap) => updatePropertiesTable({ fragmentIdMap }));
-    highlighter.events.select.onClear.add(() => updatePropertiesTable({ fragmentIdMap: {} }));
+
+
+   // Обработчики для переключения между деревом и свойствами
+    highlighter.events.select.onHighlight.add((fragmentIdMap) => {
+      updatePropertiesTable({ fragmentIdMap });
+      document.getElementById("properties-section").style.display = "block";
+      document.getElementById("tree-section").style.display = "none";
+    });
+    
+    highlighter.events.select.onClear.add(() => {
+      updatePropertiesTable({ fragmentIdMap: {} });
+      document.getElementById("properties-section").style.display = "none";
+      document.getElementById("tree-section").style.display = "block";
+    });
 
     // Объединённая панель управления и свойств
     const panel = BUI.Component.create(() => {
@@ -116,17 +131,22 @@ export default function World() {
         propertiesTable.queryString = input.value !== "" ? input.value : null;
       };
 
+      const onTreeSearch = (e) => {
+        const input = e.target;
+        relationsTree.queryString = input.value;
+      };
+
+
       const expandTable = (e) => {
         const button = e.target;
         propertiesTable.expanded = !propertiesTable.expanded;
-        button.label = propertiesTable.expanded ? "Collapse" : "Expand";
+        button.label = propertiesTable.expanded ? "Свернуть" : "Развернуть";
       };
 
       const copyAsTSV = async () => await navigator.clipboard.writeText(propertiesTable.tsv);
 
       return BUI.html`
     <bim-panel label="Управление моделями">
-      
       <bim-panel-section label="Настройки">
         <bim-color-input 
           label="Цвет фона" color="#202932" 
@@ -184,41 +204,45 @@ export default function World() {
         ${modelsList}
       </bim-panel-section>
 
-      <bim-panel-section label="Свойства элемента">
-        <div style="display: flex; gap: 0.5rem;">
-          <bim-button @click=${expandTable} label=${propertiesTable.expanded ? "Скрыть" : "Показать"}></bim-button>
-          <bim-button @click=${copyAsTSV} label="Скопировать как TSV"></bim-button>
-        </div>
-        <bim-text-input @input=${onTextInput} placeholder="Поиск" debounce="250"></bim-text-input>
-        ${propertiesTable}
+      
+      <bim-panel-section id="tree-section" label="Дерево элементов">
+        <bim-text-input @input=${onTreeSearch} placeholder="Поиск в дереве" debounce="250"></bim-text-input>
+        ${relationsTree}
       </bim-panel-section>
 
-    </bim-panel>
-    <div id="container"></div>
-  `;
+          <bim-panel-section id="properties-section" label="Свойства элемента" style="display: none">
+            <div style="display: flex; gap: 0.5rem;">
+              <bim-button @click=${expandTable} label=${propertiesTable.expanded ? "Свернуть" : "Развернуть"}></bim-button>
+              <bim-button @click=${copyAsTSV} label="Скопировать как TSV"></bim-button>
+            </div>
+            <bim-text-input @input=${onTextInput} placeholder="Поиск в свойствах" debounce="250"></bim-text-input>
+            ${propertiesTable}
+          </bim-panel-section>
+        </bim-panel>
+      `;
     });
 
-    // Обёртка панели и кнопка переключения видимости
-    const containerDiv = document.createElement("div");
-    containerDiv.classList.add("panel-container", "visible");
-    containerDiv.appendChild(panel);
+// Создаем контейнер для панели
+    const panelContainer = document.createElement("div");
+    panelContainer.appendChild(panel);
 
-    const toggleButton = document.createElement("div");
-    toggleButton.id = "toggle-panel";
-    toggleButton.textContent = "⮜";
+    // Кнопка переключения видимости панели
+    const toggleButton = document.createElement("button");
+    toggleButton.textContent = "◄";
+    
     toggleButton.onclick = () => {
-      const isVisible = containerDiv.classList.contains("visible");
-      containerDiv.classList.toggle("visible", !isVisible);
-      containerDiv.classList.toggle("hidden", isVisible);
-      toggleButton.textContent = isVisible ? "⮞" : "⮜";
+      const isVisible = panelContainer.style.left === "0px";
+      panelContainer.style.left = isVisible ? "-350px" : "0px";
+      toggleButton.style.left = isVisible ? "0px" : "350px";
+      toggleButton.textContent = isVisible ? "►" : "◄";
     };
-
-    document.body.appendChild(containerDiv);
-    document.body.appendChild(toggleButton);
-
     //Добавление на страницу
-    document.body.appendChild(containerDiv);
+    document.body.appendChild(panelContainer);
     document.body.appendChild(toggleButton);
+    
+    // По умолчанию показываем дерево элементов
+    document.getElementById("tree-section").style.display = "block";
+    document.getElementById("properties-section").style.display = "none";
   });
 
   return null;
